@@ -25,6 +25,7 @@ option(LANGUAGES "Compile localization files for specified languages." "")
 option(DYNAMIC_LINKING
         "Use dynamic linking. Or use static to remove MinGW dependency instead." "ON")
 option(JSON_FORMAT "Build JSON formatter" "OFF")
+option(WARNINGS_AS_ERRORS "Treats warning as errors." "ON")
 option(CATA_CCACHE "Try to find and build with ccache" "ON")
 option(CATA_CLANG_TIDY_PLUGIN "Build Cata's custom clang-tidy checks as a plugin" "OFF")
 option(CATA_CLANG_TIDY_EXECUTABLE "Build Cata's custom clang-tidy checks as an executable" "OFF")
@@ -242,7 +243,7 @@ message(STATUS "See doc/COMPILING/COMPILING-CMAKE.md for details and more info -
 
 if (NOT MSVC)
     set(CATA_WARNINGS
-            "-Werror -Wall -Wextra \
+            "-Wall -Wextra \
              -Wformat-signedness \
              -Wlogical-op \
              -Wmissing-declarations \
@@ -254,6 +255,11 @@ if (NOT MSVC)
              -Wsuggest-override \
              -Wunused-macros \
              -Wzero-as-null-pointer-constant")
+
+    if (WARNINGS_AS_ERRORS)
+        set(CATA_WARNINGS "${CATA_WARNINGS} -Werror")
+    endif()
+
     if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
         set(CATA_WARNINGS "${CATA_WARNINGS} -Wno-unknown-warning-option")
     else()
@@ -315,9 +321,9 @@ if (TILES)
     if (NOT VCPKG_MANIFEST_MODE)
         find_package(SDL2_ttf)
     else()
-        find_package(sdl2-ttf)
+        find_package(SDL2_ttf CONFIG REQUIRED)
     endif()
-    if (NOT (SDL2_TTF_FOUND OR TARGET SDL2::SDL2_ttf OR TARGET SDL2::SDL2_ttf-static))
+    if (NOT (SDL2_TTF_FOUND OR TARGET SDL2::SDL2_ttf OR TARGET SDL2::SDL2_ttf-static OR TARGET SDL2_ttf::SDL2_ttf-static OR TARGET SDL2_ttf::SDL2_ttf))
         message(FATAL_ERROR
                 "This project requires SDL2_ttf to be installed to compile in graphical mode. \
                  Please install the SDL2_ttf development libraries, \
@@ -327,11 +333,11 @@ if (TILES)
 
     message(STATUS "Searching for SDL2_image library --")
     if(VCPKG_MANIFEST_MODE)
-        find_package(sdl2-image)
+        find_package(SDL2_image)
     else()
         find_package(SDL2_image)
     endif()
-    if (NOT (SDL2_IMAGE_FOUND OR TARGET SDL2::SDL2_image))
+    if (NOT (SDL2_IMAGE_FOUND OR TARGET SDL2::SDL2_image OR TARGET SDL2_image::SDL2_image-static OR TARGET SDL2_image::SDL2_image))
         message(FATAL_ERROR
                 "This project requires SDL2_image to be installed to compile in graphical mode. \
                  Please install the SDL2_image development libraries, \
@@ -371,8 +377,8 @@ if (SOUND)
     # Sound requires SDL_mixer library
     if(VCPKG_MANIFEST_MODE)
         message(STATUS "Searching for sdl2-mixer library --")
-        find_package(sdl2-mixer)
-        if (NOT TARGET SDL2::SDL2_mixer)
+        find_package(SDL2_mixer)
+        if (NOT (TARGET SDL2_mixer::SDL2_mixer OR TARGET SDL2_mixer::SDL2_mixer-static))
             message(FATAL_ERROR
                     "You need the sdl2-mixer development library \
                      to be able to compile with sound enabled. \
