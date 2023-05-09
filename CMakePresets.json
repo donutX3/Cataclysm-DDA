@@ -17,10 +17,10 @@
       "name": "cataclysmdda-base",
       "inherits": ["base"],
       "description": "Base for building CDDA",
-      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "binaryDir": "${sourceDir}/build",
       "generator": "Ninja",
       "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_MANIFEST_DIR": "${sourceDir}/msvc-full-features",
         "VCPKG_MANIFEST_MODE": "ON",
         "CURSES": "OFF",
