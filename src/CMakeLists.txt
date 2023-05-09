@@ -108,9 +108,9 @@ if (TILES)
             ${ZLIB_LIBRARIES})
     if(TARGET SDL2::SDL2)
         target_link_libraries(cataclysm-tiles-common PUBLIC SDL2::SDL2
-                SDL2::SDL2main
-                SDL2_image::SDL2_image-static
-                SDL2_ttf::SDL2_ttf-static)
+            SDL2::SDL2main
+            SDL2_image::SDL2_image-static
+            SDL2_ttf::SDL2_ttf-static)
     endif()
     if (SOUND)
         if (VCPKG_MANIFEST_MODE)
