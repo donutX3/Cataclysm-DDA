@@ -14,11 +14,9 @@
       "hidden": true
     },
     {
-      "name": "cataclysmdda-x64",
-      "inherits": [
-        "base"
-      ],
-      "description": "Platformless x64 CDDA",
+      "name": "cataclysmdda-base",
+      "inherits": ["base"],
+      "description": "Base for building CDDA",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "binaryDir": "${sourceDir}/build",
       "generator": "Ninja",
@@ -35,35 +33,65 @@
       "hidden": true
     },
     {
-      "name": "cataclysmdda-linux-x64-dynamic",
-      "inherits": [
-        "cataclysmdda-x64"
-      ],
-      "description": "Linux x64 CDDA",
+      "name": "cataclysmdda-linux-x64-base",
+      "inherits": ["cataclysmdda-base"],
+      "description": "Base for building CDDA on Linux x64",
       "cacheVariables": {
         "VCPKG_HOST_TRIPLET": "x64-linux"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "hidden": true
+    },
+    {
+      "name": "cataclysmdda-windows-x64-base",
+      "inherits": ["cataclysmdda-base"],
+      "description": "Base for building CDDA on Windows x64",
+      "cacheVariables": {
+        "VCPKG_HOST_TRIPLET": "x64-windows"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "hidden": true
+    },
+    {
+      "name": "cataclysmdda-linux-x64-dynamic",
+      "inherits": ["cataclysmdda-linux-x64-base"],
+      "description": "Linux x64 CDDA with dynamic linking",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-linux",
+        "DYNAMIC_LINKING": "ON"
+      }
+    },
+    {
+      "name": "cataclysmdda-linux-x64-static",
+      "inherits": ["cataclysmdda-linux-x64-base"],
+      "description": "Linux x64 CDDA with static linking",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "x64-linux-static",
+        "DYNAMIC_LINKING": "OFF"
       }
     },
     {
       "name": "cataclysmdda-windows-x64-dynamic",
-      "inherits": [
-        "cataclysmdda-x64"
-      ],
-      "description": "Windows x64 CDDA",
+      "inherits": ["cataclysmdda-windows-x64-base"],
+      "description": "Windows x64 CDDA with dynamic linking",
       "cacheVariables": {
-        "VCPKG_HOST_TRIPLET": "x64-windows",
         "VCPKG_TARGET_TRIPLET": "x64-windows",
         "DYNAMIC_LINKING": "ON"
       }
     },
     {
       "name": "cataclysmdda-windows-x64-static",
-      "inherits": [
-        "cataclysmdda-x64"
-      ],
-      "description": "Windows x64 CDDA",
+      "inherits": ["cataclysmdda-windows-x64-base"],
+      "description": "Windows x64 CDDA with static linking",
       "cacheVariables": {
-        "VCPKG_HOST_TRIPLET": "x64-windows",
         "VCPKG_TARGET_TRIPLET": "x64-windows-static",
         "DYNAMIC_LINKING": "OFF"
       }
