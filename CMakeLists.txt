@@ -53,7 +53,6 @@ if (MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8") # Properly compile utf stuff
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj") # Enable big obj sections
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4068") # Ignore warnings about GCC pragmas
-    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHs") # Ignore warnings about GCC pragmas
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP") # Allow compiling multiple files at once
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive-") # Be more standard conforming
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /sdl-") # Disable some security features and warnings
