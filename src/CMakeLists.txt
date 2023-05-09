@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.21)
-
 add_subdirectory(${CMAKE_SOURCE_DIR}/src/third-party)
 
 set(MAIN_CPP ${CMAKE_SOURCE_DIR}/src/main.cpp)
@@ -118,7 +116,6 @@ if (TILES)
     if (SOUND)
         if (VCPKG_MANIFEST_MODE)
             find_package(Ogg REQUIRED)
-            find_package(Vorbis REQUIRED)
             # SDL2_mixer::SDL2_mixer-static = TODO x64-mingw-static ?
             target_link_libraries(cataclysm-tiles-common PUBLIC
                 $<IF:$<TARGET_EXISTS:SDL2_mixer::SDL2_mixer>,SDL2_mixer::SDL2_mixer,SDL2_mixer::SDL2_mixer-static>

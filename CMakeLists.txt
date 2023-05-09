@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.20)
 
 project(CataclysmDDA)
 
@@ -40,7 +40,7 @@ if (TESTS)
 include(CTest)
 endif()
 
-message(STATUS "${PROJECT} build environment --")
+message(STATUS "${PROJECT_NAME} build environment --")
 message(STATUS "Build realm is: ${CMAKE_SYSTEM_NAME} ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
 if (NOT CMAKE_BUILD_TYPE)
@@ -238,7 +238,7 @@ endif ()
 # Set build types and display info
 if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     set(RELEASE 0)
-    message(STATUS "Build ${PROJECT} in development mode --")
+    message(STATUS "Build ${PROJECT_NAME} in development mode --")
     message(STATUS "Binaries will be located in: " ${CMAKE_SOURCE_DIR})
     set(CMAKE_VERBOSE_MAKEFILE ON)
     # Since CataclysmDDA does not respect PREFIX for development builds
@@ -419,6 +419,7 @@ if (SOUND)
     # Sound requires SDL_mixer library
     if(VCPKG_MANIFEST_MODE)
         message(STATUS "Searching for sdl2-mixer library --")
+        find_package(Ogg REQUIRED)
         find_package(SDL2_mixer)
         if (NOT (TARGET SDL2_mixer::SDL2_mixer OR TARGET SDL2_mixer::SDL2_mixer-static))
             message(FATAL_ERROR
