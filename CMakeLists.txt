@@ -363,9 +363,9 @@ if (TILES)
     if (NOT VCPKG_MANIFEST_MODE)
         find_package(SDL2_ttf)
     else()
-        find_package(SDL2_ttf CONFIG REQUIRED)
+        find_package(SDL2_ttf)
     endif()
-    if (NOT (SDL2_TTF_FOUND OR TARGET SDL2::SDL2_ttf OR TARGET SDL2::SDL2_ttf-static OR TARGET SDL2_ttf::SDL2_ttf-static OR TARGET SDL2_ttf::SDL2_ttf))
+    if (NOT (SDL2_TTF_FOUND OR TARGET SDL2::SDL2_ttf OR TARGET SDL2_ttf::SDL2_ttf-static))
         message(FATAL_ERROR
                 "This project requires SDL2_ttf to be installed to compile in graphical mode. \
                  Please install the SDL2_ttf development libraries, \
@@ -379,7 +379,7 @@ if (TILES)
     else()
         find_package(SDL2_image)
     endif()
-    if (NOT (SDL2_IMAGE_FOUND OR TARGET SDL2::SDL2_image OR TARGET SDL2_image::SDL2_image-static OR TARGET SDL2_image::SDL2_image))
+    if (NOT (SDL2_IMAGE_FOUND OR TARGET SDL2_image::SDL2_image-static))
         message(FATAL_ERROR
                 "This project requires SDL2_image to be installed to compile in graphical mode. \
                  Please install the SDL2_image development libraries, \

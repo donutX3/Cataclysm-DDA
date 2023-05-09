@@ -107,18 +107,17 @@ if (TILES)
             ${SDL2_TTF_LIBRARIES}
             ${ZLIB_LIBRARIES})
     if(TARGET SDL2::SDL2)
-        target_link_libraries(cataclysm-tiles-common PUBLIC
-            $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
-            $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
-            $<IF:$<TARGET_EXISTS:SDL2_image::SDL2_image>,SDL2_image::SDL2_image,SDL2_image::SDL2_image-static>
-            $<IF:$<TARGET_EXISTS:SDL2_ttf::SDL2_ttf>,SDL2_ttf::SDL2_ttf,SDL2_ttf::SDL2_ttf-static>)
+        target_link_libraries(cataclysm-tiles-common PUBLIC SDL2::SDL2
+                SDL2::SDL2main
+                SDL2_image::SDL2_image-static
+                SDL2_ttf::SDL2_ttf-static)
     endif()
     if (SOUND)
         if (VCPKG_MANIFEST_MODE)
             find_package(Ogg REQUIRED)
             # SDL2_mixer::SDL2_mixer-static = TODO x64-mingw-static ?
-            target_link_libraries(cataclysm-tiles-common PUBLIC
-                $<IF:$<TARGET_EXISTS:SDL2_mixer::SDL2_mixer>,SDL2_mixer::SDL2_mixer,SDL2_mixer::SDL2_mixer-static>
+            find_package(Vorbis REQUIRED)
+            target_link_libraries(cataclysm-tiles-common PUBLIC SDL2_mixer::SDL2_mixer-static
                 Ogg::ogg
                 Vorbis::vorbis)
         endif()
