@@ -610,7 +610,7 @@ int main( int argc, const char *argv[] )
 
 #if defined(_WIN32) and defined(TILES)
     const HANDLE std_output { GetStdHandle( STD_OUTPUT_HANDLE ) }, std_error { GetStdHandle( STD_ERROR_HANDLE ) };
-    if( std_output != INVALID_HANDLE_VALUE and std_error != INVALID_HANDLE_VALUE ) {
+    if( std_output != INVALID_HANDLE_VALUE && std_error != INVALID_HANDLE_VALUE ) {
         if( AttachConsole( ATTACH_PARENT_PROCESS ) ) {
             if( std_output == nullptr ) {
                 freopen_s( &CONOUT, "CONOUT$", "w", stdout );

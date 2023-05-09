@@ -9,24 +9,21 @@
     {
       "name": "base",
       "environment": {
-        "VCPKG_ROOT": "G:/Software/vcpkg"
+        "VCPKG_ROOT": "C:/vcpkg"
       },
       "hidden": true
     },
     {
-      "name": "cataclysmdda-x64-dynamic",
+      "name": "cataclysmdda-x64",
       "inherits": [
         "base"
       ],
       "description": "Platformless x64 CDDA",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "binaryDir": "${sourceDir}/build",
+      "generator": "Ninja",
       "cacheVariables": {
         "VCPKG_MANIFEST_DIR": "${sourceDir}/msvc-full-features",
-        "VCPKG_TARGET_ARCHITECTURE": "x64",
-        "VCPKG_CRT_LINKAGE": "dynamic",
-        "VCPKG_LIBRARY_LINKAGE": "dynamic",
-        "VCPKG_BUILD_TYPE": "release",
         "VCPKG_MANIFEST_MODE": "ON",
         "CURSES": "OFF",
         "TILES": "ON",
@@ -40,10 +37,9 @@
     {
       "name": "cataclysmdda-linux-x64-dynamic",
       "inherits": [
-        "cataclysmdda-x64-dynamic"
+        "cataclysmdda-x64"
       ],
       "description": "Linux x64 CDDA",
-      "generator": "Ninja",
       "cacheVariables": {
         "VCPKG_HOST_TRIPLET": "x64-linux"
       }
@@ -51,12 +47,25 @@
     {
       "name": "cataclysmdda-windows-x64-dynamic",
       "inherits": [
-        "cataclysmdda-x64-dynamic"
+        "cataclysmdda-x64"
       ],
       "description": "Windows x64 CDDA",
-      "generator": "Ninja",
       "cacheVariables": {
-        "VCPKG_HOST_TRIPLET": "x64-windows"
+        "VCPKG_HOST_TRIPLET": "x64-windows",
+        "VCPKG_TARGET_TRIPLET": "x64-windows",
+        "DYNAMIC_LINKING": "ON"
+      }
+    },
+    {
+      "name": "cataclysmdda-windows-x64-static",
+      "inherits": [
+        "cataclysmdda-x64"
+      ],
+      "description": "Windows x64 CDDA",
+      "cacheVariables": {
+        "VCPKG_HOST_TRIPLET": "x64-windows",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static",
+        "DYNAMIC_LINKING": "OFF"
       }
     }
   ]
