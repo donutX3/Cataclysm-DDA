@@ -26,6 +26,12 @@ static const flag_id json_flag_ONE_PER_LAYER( "ONE_PER_LAYER" );
 
 static const itype_id itype_shoulder_strap( "shoulder_strap" );
 
+static const material_id material_acidchitin( "acidchitin" );
+static const material_id material_bone( "bone" );
+static const material_id material_chitin( "chitin" );
+static const material_id material_fur( "fur" );
+static const material_id material_gutskin( "gutskin" );
+static const material_id material_leather( "leather" );
 static const material_id material_wool( "wool" );
 
 static const sub_bodypart_str_id sub_body_part_foot_sole_l( "foot_sole_l" );
@@ -35,6 +41,7 @@ static const trait_id trait_ANTENNAE( "ANTENNAE" );
 static const trait_id trait_ANTLERS( "ANTLERS" );
 static const trait_id trait_HORNS_POINTED( "HORNS_POINTED" );
 static const trait_id trait_SQUEAMISH( "SQUEAMISH" );
+static const trait_id trait_VEGAN( "VEGAN" );
 static const trait_id trait_WOOLALLERGY( "WOOLALLERGY" );
 
 nc_color item_penalties::color_for_stacking_badness() const
@@ -82,6 +89,17 @@ ret_val<void> Character::can_wear( const item &it, bool with_equip_change ) cons
     if( has_trait( trait_WOOLALLERGY ) && ( it.made_of( material_wool ) ||
                                             it.has_own_flag( flag_wooled ) ) ) {
         return ret_val<void>::make_failure( _( "Can't wear that, it's made of wool!" ) );
+    }
+
+    if( has_trait( trait_VEGAN ) && ( it.made_of( material_leather ) ||
+                                      it.has_own_flag( flag_ANIMAL_PRODUCT ) ||
+                                      it.made_of( material_fur ) ||
+                                      it.made_of( material_wool ) ||
+                                      it.made_of( material_chitin ) ||
+                                      it.made_of( material_bone ) ||
+                                      it.made_of( material_gutskin ) ||
+                                      it.made_of( material_acidchitin ) ) ) {
+        return ret_val<void>::make_failure( _( "Can't wear that, it's made from an animal!" ) );
     }
 
     if( it.is_filthy() && has_trait( trait_SQUEAMISH ) ) {
@@ -1773,8 +1791,13 @@ void outfit::get_overlay_ids( std::vector<std::pair<std::string, std::string>> &
         if( worn_item.has_flag( json_flag_HIDDEN ) ) {
             continue;
         }
-        const std::string variant = worn_item.has_itype_variant() ? worn_item.itype_variant().id : "";
-        overlay_ids.emplace_back( "worn_" + worn_item.typeId().str(), variant );
+        if( worn_item.has_var( "sprite_override" ) ) {
+            overlay_ids.emplace_back( "worn_" + worn_item.get_var( "sprite_override" ),
+                                      worn_item.get_var( "sprite_override_variant", "" ) );
+        } else {
+            const std::string variant = worn_item.has_itype_variant() ? worn_item.itype_variant().id : "";
+            overlay_ids.emplace_back( "worn_" + worn_item.typeId().str(), variant );
+        }
     }
 }
 

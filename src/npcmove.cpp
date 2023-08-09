@@ -80,6 +80,7 @@
 #include "vpart_position.h"
 #include "vpart_range.h"
 
+static const activity_id ACT_CRAFT( "ACT_CRAFT" );
 static const activity_id ACT_FIRSTAID( "ACT_FIRSTAID" );
 static const activity_id ACT_MOVE_LOOT( "ACT_MOVE_LOOT" );
 static const activity_id ACT_OPERATION( "ACT_OPERATION" );
@@ -132,6 +133,8 @@ static const itype_id itype_lsd( "lsd" );
 static const itype_id itype_oxygen_tank( "oxygen_tank" );
 static const itype_id itype_smoxygen_tank( "smoxygen_tank" );
 static const itype_id itype_thorazine( "thorazine" );
+
+static const mon_flag_str_id mon_flag_RIDEABLE_MECH( "RIDEABLE_MECH" );
 
 static const npc_class_id NC_EVAC_SHOPKEEP( "NC_EVAC_SHOPKEEP" );
 
@@ -1758,8 +1761,8 @@ void outfit::activate_combat_items( npc &guy )
             if( transform->target->has_flag( flag_USE_UPS ) && guy.available_ups() == 0_kJ ) {
                 continue;
             }
-            if( transform->can_use( guy, candidate, false, tripoint_zero ).success() ) {
-                transform->use( guy, candidate, false, tripoint_zero );
+            if( transform->can_use( guy, candidate, tripoint_zero ).success() ) {
+                transform->use( &guy, candidate, tripoint_zero );
                 guy.add_msg_if_npc( _( "<npcname> activates their %s." ), candidate.display_name() );
             }
         }
@@ -1778,8 +1781,8 @@ void outfit::deactivate_combat_items( npc &guy )
             candidate.active ) {
             const iuse_transform *transform = dynamic_cast<const iuse_transform *>
                                               ( candidate.type->get_use( "transform" )->get_actor_ptr() );
-            if( transform->can_use( guy, candidate, false, tripoint_zero ).success() ) {
-                transform->use( guy, candidate, false, tripoint_zero );
+            if( transform->can_use( guy, candidate, tripoint_zero ).success() ) {
+                transform->use( &guy, candidate, tripoint_zero );
                 guy.add_msg_if_npc( _( "<npcname> deactivates their %s." ), candidate.display_name() );
             }
         }
@@ -2212,11 +2215,13 @@ void npc::aim( const Target_attributes &target_attributes )
 {
     const item_location weapon = get_wielded_item();
     double aim_amount = weapon ? aim_per_move( *weapon, recoil ) : 0.0;
+    const aim_mods_cache &aim_cache = gen_aim_mods_cache( *weapon );
+    auto aim_cache_opt = std::make_optional( std::ref( aim_cache ) );
     while( aim_amount > 0 && recoil > 0 && moves > 0 ) {
         moves--;
         recoil -= aim_amount;
         recoil = std::max( 0.0, recoil );
-        aim_amount = aim_per_move( *weapon, recoil, target_attributes );
+        aim_amount = aim_per_move( *weapon, recoil, target_attributes, aim_cache_opt );
     }
 }
 
@@ -2239,7 +2244,7 @@ bool npc::update_path( const tripoint &p, const bool no_bashing, bool force )
         }
     }
 
-    auto new_path = get_map().route( pos(), p, get_pathfinding_settings( no_bashing ),
+    std::vector<tripoint> new_path = get_map().route( pos(), p, get_pathfinding_settings( no_bashing ),
                                      get_path_avoid() );
     if( new_path.empty() ) {
         if( !ai_cache.sound_alerts.empty() ) {
@@ -2436,7 +2441,7 @@ void npc::move_to( const tripoint &pt, bool no_bashing, std::set<tripoint> *nomo
                                                 diag ) * 100.0 / mounted_creature->get_speed();
             const double encumb_moves = get_weight() / 4800.0_gram;
             moves -= static_cast<int>( std::ceil( base_moves + encumb_moves ) );
-            if( mounted_creature->has_flag( MF_RIDEABLE_MECH ) ) {
+            if( mounted_creature->has_flag( mon_flag_RIDEABLE_MECH ) ) {
                 mounted_creature->use_mech_power( 1_kJ );
             }
         } else {
@@ -2449,6 +2454,13 @@ void npc::move_to( const tripoint &pt, bool no_bashing, std::set<tripoint> *nomo
             moves -= 100;
         } else { // hallucinations teleport through doors
             moves -= 100;
+            moved = true;
+        }
+    } else if( doors::can_unlock_door( here, *this, pt ) ) {
+        if( !is_hallucination() ) {
+            doors::unlock_door( here, *this, pt );
+        } else {
+            mod_moves( -100 );
             moved = true;
         }
     } else if( get_dex() > 1 && here.has_flag_ter_or_furn( ter_furn_flag::TFLAG_CLIMBABLE, p ) ) {
@@ -2514,6 +2526,10 @@ void npc::move_to( const tripoint &pt, bool no_bashing, std::set<tripoint> *nomo
         // Close doors behind self (if you can)
         if( ( rules.has_flag( ally_rule::close_doors ) && is_player_ally() ) && !is_hallucination() ) {
             doors::close_door( here, *this, old_pos );
+        }
+        // Lock doors as well
+        if( ( rules.has_flag( ally_rule::lock_doors ) && is_player_ally() ) && !is_hallucination() ) {
+            doors::lock_door( here, *this, old_pos );
         }
 
         if( here.veh_at( p ).part_with_feature( VPFLAG_BOARDABLE, true ) ) {
@@ -2641,6 +2657,16 @@ void npc::move_away_from( const tripoint &pt, bool no_bash_atk, std::set<tripoin
 
 bool npc::find_job_to_perform()
 {
+    // cleanup history
+    auto fetch_itr = job.fetch_history.begin();
+    while( fetch_itr != job.fetch_history.end() ) {
+        if( fetch_itr->second != calendar::turn ) {
+            fetch_itr = job.fetch_history.erase( fetch_itr );
+        } else {
+            fetch_itr++;
+        }
+    }
+
     for( activity_id &elem : job.get_prioritised_vector() ) {
         if( job.get_priority_of_job( elem ) == 0 ) {
             continue;
@@ -2950,10 +2976,8 @@ void npc::find_item()
         int num_items = m_stack.size();
         const optional_vpart_position vp = here.veh_at( p );
         if( vp ) {
-            const std::optional<vpart_reference> cargo = vp.part_with_feature( VPFLAG_CARGO, true );
-            if( cargo ) {
-                vehicle_stack v_stack = cargo->vehicle().get_items( cargo->part_index() );
-                num_items += v_stack.size();
+            if( const std::optional<vpart_reference> vp_cargo = vp.cargo() ) {
+                num_items += vp_cargo->items().size();
             }
         }
         if( prev_num_items == num_items ) {
@@ -2982,7 +3006,7 @@ void npc::find_item()
             cache_tile();
             continue;
         }
-        const std::optional<vpart_reference> cargo = vp.part_with_feature( VPFLAG_CARGO, true );
+        const std::optional<vpart_reference> cargo = vp.cargo();
         static const std::string locked_string( "LOCKED" );
         // TODO: Let player know what parts are safe from NPC thieves
         if( !cargo || cargo->has_feature( locked_string ) ) {
@@ -2996,7 +3020,7 @@ void npc::find_item()
             continue;
         }
 
-        for( const item &it : cargo->vehicle().get_items( cargo->part_index() ) ) {
+        for( const item &it : cargo->items() ) {
             consider_item( it, p );
         }
         cache_tile();
@@ -3152,7 +3176,7 @@ std::list<item> npc::pick_up_item_map( const tripoint &where )
 
 std::list<item> npc::pick_up_item_vehicle( vehicle &veh, int part_index )
 {
-    vehicle_stack stack = veh.get_items( part_index );
+    vehicle_stack stack = veh.get_items( veh.part( part_index ) );
     return npc_pickup_from_stack( *this, stack );
 }
 
@@ -3290,6 +3314,10 @@ bool npc::do_player_activity()
     }
     /* if the activity is finished, grab any backlog or change the mission */
     if( !has_destination() && !activity ) {
+        // workaround: auto resuming craft activity may cause infinite loop
+        while( !backlog.empty() && backlog.front().id() == ACT_CRAFT ) {
+            backlog.pop_front();
+        }
         if( !backlog.empty() ) {
             activity = backlog.front();
             backlog.pop_front();
@@ -3551,7 +3579,7 @@ void npc::activate_item( item &it )
 {
     const int oldmoves = moves;
     if( it.is_tool() || it.is_food() ) {
-        it.type->invoke( *this, it, pos() );
+        it.type->invoke( this, it, pos() );
     }
 
     if( moves == oldmoves ) {
@@ -3590,7 +3618,7 @@ void npc::heal_player( Character &patient )
         return;
     }
     if( !is_hallucination() ) {
-        int charges_used = used.type->invoke( *this, used, patient.pos(), "heal" ).value_or( 0 );
+        int charges_used = used.type->invoke( this, used, patient.pos(), "heal" ).value_or( 0 );
         consume_charges( used, charges_used );
     } else {
         pretend_heal( patient, used );
@@ -3632,7 +3660,7 @@ void npc::heal_self()
             }
         }
         if( treatment != nullptr ) {
-            treatment->get_use( iusage )->call( *this, *treatment, treatment->active, pos() );
+            treatment->get_use( iusage )->call( this, *treatment, pos() );
             treatment->ammo_consume( treatment->ammo_required(), pos(), this );
             return;
         }
@@ -3652,7 +3680,7 @@ void npc::heal_self()
     add_msg_if_player_sees( *this, _( "%1$s starts applying a %2$s." ), disp_name(), used.tname() );
     warn_about( "heal_self", 1_turns );
 
-    int charges_used = used.type->invoke( *this, used, pos(), "heal" ).value_or( 0 );
+    int charges_used = used.type->invoke( this, used, pos(), "heal" ).value_or( 0 );
     if( used.is_medication() && charges_used > 0 ) {
         consume_charges( used, charges_used );
     }

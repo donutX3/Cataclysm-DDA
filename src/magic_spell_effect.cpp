@@ -76,6 +76,9 @@ static const json_character_flag json_flag_PRED2( "PRED2" );
 static const json_character_flag json_flag_PRED3( "PRED3" );
 static const json_character_flag json_flag_PRED4( "PRED4" );
 
+static const mon_flag_str_id mon_flag_NO_NECRO( "NO_NECRO" );
+static const mon_flag_str_id mon_flag_REVIVES( "REVIVES" );
+
 static const mtype_id mon_blob( "mon_blob" );
 static const mtype_id mon_blob_brain( "mon_blob_brain" );
 static const mtype_id mon_blob_large( "mon_blob_large" );
@@ -533,31 +536,31 @@ static void damage_targets( const spell &sp, Creature &caster,
 
         dealt_projectile_attack atk = sp.get_projectile_attack( target, *cr, caster );
         const int spell_accuracy = sp.accuracy( caster );
-        double damage_mitigation_multiplier = 1.0;
-        if( const int spell_block = cr->get_block_bonus() - spell_accuracy > 0 ) {
-            const int roll = std::round( rng( 1, 20 ) );
-            // 5% per point (linear) ranging from 0-33%, capped at block score
-            damage_mitigation_multiplier -= ( 1 - 0.05 * std::max( roll, spell_block ) ) / 3.0;
-        }
-
-        if( cr->dodge_check( spell_accuracy ) ) {
-            const int spell_dodge = cr->get_dodge() - spell_accuracy;
-            const int roll = std::round( rng( 1, 20 ) );
-            // 5% per point (linear) ranging from 0-33%, capped at block score
-            damage_mitigation_multiplier -= ( 1 - 0.05 * std::max( roll, spell_dodge ) ) / 3.0;
-        }
-
-        if( const int spell_resist = cr->get_spell_resist() - spell_accuracy > 0 &&
-                                     !sp.has_flag( spell_flag::NON_MAGICAL ) ) {
-            const int roll = std::round( rng( 1, 20 ) );
-            // 5% per point (linear) ranging from 0-33%, capped at block score
-            damage_mitigation_multiplier -= ( 1 - 0.05 * std::max( roll, spell_resist ) ) / 3.0;
-        }
 
         if( !sp.effect_data().empty() ) {
             add_effect_to_target( target, sp, caster );
         }
         if( sp.damage( caster ) > 0 ) {
+            // calculate damage mitigation from various sources
+            // 5% per point (linear) ranging from 0-33%, capped at block score
+            double damage_mitigation_multiplier = 1.0;
+            if( const int spell_block = cr->get_block_bonus() - spell_accuracy > 0 ) {
+                const int roll = std::round( rng( 1, 20 ) );
+                damage_mitigation_multiplier -= ( 1 - 0.05 * std::max( roll, spell_block ) ) / 3.0;
+            }
+
+            if( cr->dodge_check( spell_accuracy ) ) {
+                const int spell_dodge = cr->get_dodge() - spell_accuracy;
+                const int roll = std::round( rng( 1, 20 ) );
+                damage_mitigation_multiplier -= ( 1 - 0.05 * std::max( roll, spell_dodge ) ) / 3.0;
+            }
+
+            if( const int spell_resist = cr->get_spell_resist() - spell_accuracy > 0 &&
+                                         !sp.has_flag( spell_flag::NON_MAGICAL ) ) {
+                const int roll = std::round( rng( 1, 20 ) );
+                damage_mitigation_multiplier -= ( 1 - 0.05 * std::max( roll, spell_resist ) ) / 3.0;
+            }
+
             for( damage_unit &val : atk.proj.impact.damage_units ) {
                 if( sp.has_flag( spell_flag::PERCENTAGE_DAMAGE ) ) {
                     val.amount = cr->get_hp( cr->get_root_body_part() ) * sp.damage( caster ) / 100.0;
@@ -1151,8 +1154,6 @@ void spell_effect::timed_event( const spell &sp, Creature &caster, const tripoin
 {
     const std::map<std::string, timed_event_type> timed_event_map{
         { "help", timed_event_type::HELP },
-        { "wanted", timed_event_type::WANTED },
-        { "robot_attack", timed_event_type::ROBOT_ATTACK },
         { "spawn_wyrms", timed_event_type::SPAWN_WYRMS },
         { "amigara", timed_event_type::AMIGARA },
         { "roots_die", timed_event_type::ROOTS_DIE },
@@ -1244,8 +1245,9 @@ void spell_effect::spawn_summoned_vehicle( const spell &sp, Creature &caster,
         caster.add_msg_if_player( m_bad, _( "There is already a vehicle there." ) );
         return;
     }
-    if( vehicle *veh = here.add_vehicle( sp.summon_vehicle_id(), target, -90_degrees, 100, 0, false, "",
-                                         false ) ) {
+    if( vehicle *veh = here.add_vehicle( sp.summon_vehicle_id(), target, -90_degrees,
+                                         100, 0, false ) ) {
+        veh->unlock();
         veh->magic = true;
         if( !sp.has_flag( spell_flag::PERMANENT ) ) {
             veh->summon_time_limit = sp.duration_turns( caster );
@@ -1404,8 +1406,8 @@ void spell_effect::revive( const spell &sp, Creature &caster, const tripoint &ta
         for( item &corpse : here.i_at( aoe ) ) {
             const mtype *mt = corpse.get_mtype();
             if( !( corpse.is_corpse() && corpse.can_revive() && corpse.active &&
-                   mt->has_flag( MF_REVIVES ) && mt->in_species( spec ) &&
-                   !mt->has_flag( MF_NO_NECRO ) ) ) {
+                   mt->has_flag( mon_flag_REVIVES ) && mt->in_species( spec ) &&
+                   !mt->has_flag( mon_flag_NO_NECRO ) ) ) {
                 continue;
             }
             if( g->revive_corpse( aoe, corpse ) ) {

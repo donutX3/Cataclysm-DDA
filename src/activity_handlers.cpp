@@ -132,11 +132,13 @@ static const activity_id ACT_MULTIPLE_BUTCHER( "ACT_MULTIPLE_BUTCHER" );
 static const activity_id ACT_MULTIPLE_CHOP_PLANKS( "ACT_MULTIPLE_CHOP_PLANKS" );
 static const activity_id ACT_MULTIPLE_CHOP_TREES( "ACT_MULTIPLE_CHOP_TREES" );
 static const activity_id ACT_MULTIPLE_CONSTRUCTION( "ACT_MULTIPLE_CONSTRUCTION" );
+static const activity_id ACT_MULTIPLE_CRAFT( "ACT_MULTIPLE_CRAFT" );
 static const activity_id ACT_MULTIPLE_DIS( "ACT_MULTIPLE_DIS" );
 static const activity_id ACT_MULTIPLE_FARM( "ACT_MULTIPLE_FARM" );
 static const activity_id ACT_MULTIPLE_FISH( "ACT_MULTIPLE_FISH" );
 static const activity_id ACT_MULTIPLE_MINE( "ACT_MULTIPLE_MINE" );
 static const activity_id ACT_MULTIPLE_MOP( "ACT_MULTIPLE_MOP" );
+static const activity_id ACT_MULTIPLE_READ( "ACT_MULTIPLE_READ" );
 static const activity_id ACT_OPERATION( "ACT_OPERATION" );
 static const activity_id ACT_PICKAXE( "ACT_PICKAXE" );
 static const activity_id ACT_PLANT_SEED( "ACT_PLANT_SEED" );
@@ -200,6 +202,8 @@ static const json_character_flag json_flag_PAIN_IMMUNE( "PAIN_IMMUNE" );
 static const json_character_flag json_flag_PSYCHOPATH( "PSYCHOPATH" );
 static const json_character_flag json_flag_SAPIOVORE( "SAPIOVORE" );
 static const json_character_flag json_flag_SILENT_SPELL( "SILENT_SPELL" );
+
+static const mon_flag_str_id mon_flag_RIDEABLE_MECH( "RIDEABLE_MECH" );
 
 static const mongroup_id GROUP_FISH( "GROUP_FISH" );
 
@@ -276,7 +280,9 @@ activity_handlers::do_turn_functions = {
     { ACT_TREE_COMMUNION, tree_communion_do_turn },
     { ACT_STUDY_SPELL, study_spell_do_turn },
     { ACT_WAIT_STAMINA, wait_stamina_do_turn },
+    { ACT_MULTIPLE_CRAFT, multiple_craft_do_turn },
     { ACT_MULTIPLE_DIS, multiple_dis_do_turn },
+    { ACT_MULTIPLE_READ, multiple_read_do_turn },
 };
 
 const std::map< activity_id, std::function<void( player_activity *, Character * )> >
@@ -1517,7 +1523,11 @@ void activity_handlers::fill_liquid_do_turn( player_activity *act, Character *yo
                                  liquid.type_name( 1 ) );
                         map_stack items_here = here.i_at( source_pos );
                         if( items_here.empty() ) {
-                            here.furn_set( source_pos, f_fvat_empty );
+                            if( here.furn( source_pos ) == f_fvat_wood_full ) {
+                                here.furn_set( source_pos, f_fvat_wood_empty );
+                            } else {
+                                here.furn_set( source_pos, f_fvat_empty );
+                            }
                         }
                     }
                     act_ref.set_to_null();
@@ -1793,7 +1803,7 @@ void activity_handlers::start_fire_finish( player_activity *act, Character *you 
 
     you->practice( skill_survival, act->index, 5 );
 
-    firestarter_actor::resolve_firestarter_use( *you, get_map().bub_from_abs( act->placement ) );
+    firestarter_actor::resolve_firestarter_use( you, get_map().bub_from_abs( act->placement ) );
     act->set_to_null();
 }
 
@@ -1826,9 +1836,32 @@ void activity_handlers::start_fire_do_turn( player_activity *act, Character *you
     item &firestarter = *act->targets.front();
     if( firestarter.has_flag( flag_REQUIRES_TINDER ) ) {
         if( !here.tinder_at( where ) ) {
-            you->add_msg_if_player( m_info, _( "This item requires tinder to light." ) );
-            you->cancel_activity();
-            return;
+            inventory_filter_preset preset( []( const item_location & loc ) {
+                return loc->has_flag( flag_TINDER );
+            } );
+            inventory_pick_selector inv_s( *you, preset );
+            inv_s.add_nearby_items( PICKUP_RANGE );
+            inv_s.add_character_items( *you );
+
+            inv_s.set_title( _( "Select tinder to use for lighting a fire" ) );
+
+            item_location tinder;
+            if( inv_s.empty() || !( tinder = inv_s.execute() ) ) {
+                you->add_msg_if_player( m_info, _( "This item requires tinder to light." ) );
+                you->cancel_activity();
+                return;
+            }
+
+            item copy = *tinder;
+            bool count_by_charges = tinder->count_by_charges();
+            if( count_by_charges ) {
+                tinder->charges--;
+                copy.charges = 1;
+            }
+            here.add_item_or_charges( where, copy );
+            if( !count_by_charges || tinder->charges <= 0 ) {
+                tinder.remove_item();
+            }
         }
     }
 
@@ -2410,7 +2443,7 @@ void repair_item_finish( player_activity *act, Character *you, bool no_menu )
                                            fix.tname() );
         ammotype current_ammo;
         std::string ammo_name;
-        if( used_tool->has_flag( flag_USE_UPS ) ) {
+        if( used_tool->link || used_tool->has_flag( flag_USE_UPS ) ) {
             ammo_name = _( "battery" );
             current_ammo = ammo_battery;
         } else if( used_tool->has_flag( flag_USES_BIONIC_POWER ) ) {
@@ -2425,7 +2458,7 @@ void repair_item_finish( player_activity *act, Character *you, bool no_menu )
             ammo_name = item::nname( used_tool->ammo_current() );
         }
 
-        int ammo_remaining = used_tool->ammo_remaining( you );
+        int ammo_remaining = used_tool->ammo_remaining( you, true );
 
         std::set<itype_id> valid_entries = actor->get_valid_repair_materials( fix );
         const inventory &crafting_inv = you->crafting_inventory();
@@ -2451,7 +2484,7 @@ void repair_item_finish( player_activity *act, Character *you, bool no_menu )
         }
 
         title += string_format( _( "Charges: <color_light_blue>%s/%s</color> %s (%s per use)\n" ),
-                                ammo_remaining, used_tool->ammo_capacity( current_ammo ),
+                                ammo_remaining, used_tool->ammo_capacity( current_ammo, true ),
                                 ammo_name,
                                 used_tool->ammo_required() );
         title += string_format( _( "Materials available: %s\n" ), string_join( material_list, ", " ) );
@@ -2588,6 +2621,10 @@ void activity_handlers::mend_item_finish( player_activity *act, Character *you )
         you->practice( skill_id, 10, static_cast<int>( level * 1.25 ) );
     }
 
+    for( const auto &[proficiency_id, mult] : fix.time_save_profs ) {
+        you->practice_proficiency( proficiency_id, fix.time );
+    }
+
     add_msg( m_good, fix.success_msg.translated(), target.tname( 1, false ),
              start_durability, target.durability_indicator( true ) );
 }
@@ -2626,13 +2663,15 @@ void activity_handlers::eat_menu_do_turn( player_activity *, Character *you )
 void activity_handlers::consume_food_menu_do_turn( player_activity *, Character * )
 {
     avatar &player_character = get_avatar();
-    avatar_action::eat( player_character, game_menus::inv::consume_food( player_character ) );
+    item_location loc = game_menus::inv::consume_food( player_character );
+    avatar_action::eat( player_character, loc );
 }
 
 void activity_handlers::consume_drink_menu_do_turn( player_activity *, Character * )
 {
     avatar &player_character = get_avatar();
-    avatar_action::eat( player_character, game_menus::inv::consume_drink( player_character ) );
+    item_location loc = game_menus::inv::consume_drink( player_character );
+    avatar_action::eat( player_character, loc );
 }
 
 void activity_handlers::consume_meds_menu_do_turn( player_activity *, Character * )
@@ -3263,7 +3302,18 @@ void activity_handlers::multiple_butcher_do_turn( player_activity *act, Characte
 {
     generic_multi_activity_handler( *act, *you );
 }
+
+void activity_handlers::multiple_craft_do_turn( player_activity *act, Character *you )
+{
+    generic_multi_activity_handler( *act, *you );
+}
+
 void activity_handlers::multiple_dis_do_turn( player_activity *act, Character *you )
+{
+    generic_multi_activity_handler( *act, *you );
+}
+
+void activity_handlers::multiple_read_do_turn( player_activity *act, Character *you )
 {
     generic_multi_activity_handler( *act, *you );
 }
@@ -3508,7 +3558,7 @@ void activity_handlers::robot_control_finish( player_activity *act, Character *y
     const float computer_skill = you->get_skill_level( skill_computer );
     const float randomized_skill = rng( 2, you->int_cur ) + computer_skill;
     float success = computer_skill - 3 * z->type->difficulty / randomized_skill;
-    if( z->has_flag( MF_RIDEABLE_MECH ) ) {
+    if( z->has_flag( mon_flag_RIDEABLE_MECH ) ) {
         success = randomized_skill - rng( 1, 11 );
     }
     // rideable mechs are not hostile, they have no AI, they do not resist control as much.
@@ -3516,7 +3566,7 @@ void activity_handlers::robot_control_finish( player_activity *act, Character *y
         you->add_msg_if_player( _( "You successfully override the %s's IFF protocols!" ),
                                 z->name() );
         z->friendly = -1;
-        if( z->has_flag( MF_RIDEABLE_MECH ) ) {
+        if( z->has_flag( mon_flag_RIDEABLE_MECH ) ) {
             z->add_effect( effect_pet, 1_turns, true );
         }
     } else if( success >= -2 ) {

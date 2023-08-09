@@ -83,6 +83,11 @@ int talker_character_const::get_cur_hp( const bodypart_id &bp ) const
     return me_chr_const->get_hp( bp );
 }
 
+int talker_character_const::get_hp_max( const bodypart_id &bp ) const
+{
+    return me_chr_const->get_hp_max( bp );
+}
+
 int talker_character_const::get_cur_part_temp( const bodypart_id &bp ) const
 {
     return me_chr_const->get_part_temp_conv( bp );
@@ -942,10 +947,34 @@ void talker_character::set_part_hp_cur( const bodypart_id &id, int set ) const
     me_chr->set_part_hp_cur( id, set );
 }
 
+void talker_character::set_all_parts_hp_cur( int set ) const
+{
+    me_chr->set_all_parts_hp_cur( set );
+}
+
+bool talker_character::get_is_alive() const
+{
+    return !me_chr->is_dead_state();
+}
+
 void talker_character::die()
 {
     me_chr->die( nullptr );
 }
+
+matec_id talker_character::get_random_technique( Creature &t, bool crit,
+        bool dodge_counter, bool block_counter, const std::vector<matec_id> &blacklist ) const
+{
+    return me_chr->pick_technique( t, me_chr->used_weapon(), crit, dodge_counter, block_counter,
+                                   blacklist );
+}
+
+void talker_character::attack_target( Creature &t, bool allow_special,
+                                      const matec_id &force_technique, bool allow_unarmed, int forced_movecost )
+{
+    me_chr->melee_attack( t, allow_special, force_technique, allow_unarmed, forced_movecost );
+}
+
 
 void talker_character::learn_martial_art( const matype_id &id ) const
 {

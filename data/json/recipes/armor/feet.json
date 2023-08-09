@@ -172,7 +172,7 @@
     "skills_required": [ "survival", 1 ],
     "time": "12 h",
     "autolearn": true,
-    "book_learn": [ [ "textbook_survival", 1 ] ],
+    "book_learn": [ [ "textbook_survival", 1 ], [ "recipe_fauxfur", 1 ] ],
     "using": [
       [ "sewing_standard", 13 ],
       [ "tailoring_leather_patchwork", 3 ],
@@ -211,6 +211,62 @@
       [ "sewing_standard", 16 ],
       [ "tailoring_leather_patchwork", 4 ],
       [ "tailoring_fur_patchwork", 4 ],
+      [ "fastener_shoes", 3 ],
+      [ "shoe_rubber", 2 ],
+      [ "adhesive_rubber", 2 ]
+    ],
+    "time": "13 h 30 m"
+  },
+  {
+    "result": "boots_faux_fur",
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "category": "CC_ARMOR",
+    "subcategory": "CSC_ARMOR_FEET",
+    "skill_used": "tailor",
+    "difficulty": 2,
+    "skills_required": [ "survival", 1 ],
+    "time": "12 h",
+    "autolearn": true,
+    "book_learn": [ [ "textbook_survival", 1 ] ],
+    "using": [
+      [ "sewing_standard", 13 ],
+      [ "tailoring_cotton_patchwork", 3 ],
+      [ "tailoring_faux_fur_patchwork", 2 ],
+      [ "fastener_shoes", 2 ],
+      [ "shoe_rubber", 1 ],
+      [ "adhesive_rubber", 1 ]
+    ],
+    "proficiencies": [
+      { "proficiency": "prof_cobbling" },
+      { "proficiency": "prof_closures" },
+      { "proficiency": "prof_leatherworking_basic" },
+      { "proficiency": "prof_furriery" }
+    ]
+  },
+  {
+    "result": "xs_boots_faux_fur",
+    "type": "recipe",
+    "copy-from": "boots_faux_fur",
+    "time": "12 h",
+    "using": [
+      [ "sewing_standard", 9 ],
+      [ "tailoring_cotton_patchwork", 2 ],
+      [ "tailoring_faux_fur_patchwork", 3 ],
+      [ "fastener_shoes", 1 ],
+      [ "shoe_rubber", 1 ],
+      [ "adhesive_rubber", 1 ]
+    ]
+  },
+  {
+    "result": "xl_boots_fur",
+    "type": "recipe",
+    "activity_level": "LIGHT_EXERCISE",
+    "copy-from": "boots_faux_fur",
+    "using": [
+      [ "sewing_standard", 16 ],
+      [ "tailoring_cotton_patchwork", 4 ],
+      [ "tailoring_faux_fur_patchwork", 4 ],
       [ "fastener_shoes", 3 ],
       [ "shoe_rubber", 2 ],
       [ "adhesive_rubber", 2 ]
@@ -532,7 +588,7 @@
     "type": "recipe",
     "activity_level": "LIGHT_EXERCISE",
     "copy-from": "boots_plate",
-    "using": [ [ "blacksmithing_standard", 37 ], [ "steel_standard", 10 ], [ "tailoring_leather_small", 20 ] ],
+    "using": [ [ "blacksmithing_standard", 40 ], [ "steel_standard", 10 ], [ "tailoring_leather_small", 20 ] ],
     "time": "9 h",
     "qualities": [ { "id": "CHISEL", "level": 3 } ],
     "tools": [ [ [ "swage", -1 ] ] ]
@@ -810,7 +866,7 @@
       [ "adhesive_rubber", 2 ],
       [ "tailoring_leather_small", 30 ],
       [ "welding_standard", 12 ],
-      [ "blacksmithing_standard", 6 ],
+      [ "blacksmithing_standard", 2 ],
       [ "steel_tiny", 2 ]
     ],
     "proficiencies": [
@@ -895,6 +951,19 @@
     "reversible": true,
     "autolearn": true,
     "components": [ [ [ "sheet_fur_patchwork", 2 ] ] ],
+    "flags": [ "BLIND_HARD" ]
+  },
+  {
+    "result": "footrags_faux_fur",
+    "type": "recipe",
+    "activity_level": "NO_EXERCISE",
+    "category": "CC_ARMOR",
+    "subcategory": "CSC_ARMOR_FEET",
+    "skill_used": "tailor",
+    "time": "1 m 30 s",
+    "reversible": true,
+    "autolearn": true,
+    "components": [ [ [ "sheet_faux_fur_patchwork", 2 ] ] ],
     "flags": [ "BLIND_HARD" ]
   },
   {
@@ -1448,7 +1517,7 @@
     "book_learn": [ [ "textbook_armwest", 7 ] ],
     "using": [
       [ "fabric_leather_fur_hide", 2 ],
-      [ "blacksmithing_standard", 16 ],
+      [ "blacksmithing_standard", 4 ],
       [ "lc_steel_standard", 1 ],
       [ "armor_chainmail_assembling", 1 ]
     ],
@@ -1469,7 +1538,7 @@
     "time": "1 d 17 h",
     "using": [
       [ "fabric_leather_fur_hide", 3 ],
-      [ "blacksmithing_standard", 22 ],
+      [ "blacksmithing_standard", 8 ],
       [ "lc_steel_standard", 2 ],
       [ "armor_chainmail_assembling", 2 ]
     ],
@@ -1523,7 +1592,7 @@
     "book_learn": [ [ "textbook_armwest", 7 ] ],
     "using": [
       [ "fabric_leather_fur_hide", 2 ],
-      [ "blacksmithing_standard", 16 ],
+      [ "blacksmithing_standard", 4 ],
       [ "mc_steel_standard", 1 ],
       [ "armor_chainmail_assembling", 1 ]
     ],
@@ -1544,7 +1613,7 @@
     "time": "1 d 17 h",
     "using": [
       [ "fabric_leather_fur_hide", 3 ],
-      [ "blacksmithing_standard", 22 ],
+      [ "blacksmithing_standard", 8 ],
       [ "mc_steel_standard", 2 ],
       [ "armor_chainmail_assembling", 2 ]
     ],
@@ -1563,7 +1632,7 @@
     "book_learn": [ [ "textbook_armwest", 7 ] ],
     "using": [
       [ "fabric_leather_fur_hide", 2 ],
-      [ "blacksmithing_standard", 16 ],
+      [ "blacksmithing_standard", 4 ],
       [ "hc_steel_standard", 1 ],
       [ "armor_chainmail_assembling", 1 ]
     ],
@@ -1584,7 +1653,7 @@
     "time": "1 d 17 h",
     "using": [
       [ "fabric_leather_fur_hide", 3 ],
-      [ "blacksmithing_standard", 22 ],
+      [ "blacksmithing_standard", 8 ],
       [ "hc_steel_standard", 2 ],
       [ "armor_chainmail_assembling", 2 ]
     ],
@@ -1603,7 +1672,7 @@
     "book_learn": [ [ "textbook_armwest", 7 ] ],
     "using": [
       [ "fabric_leather_fur_hide", 2 ],
-      [ "blacksmithing_standard", 16 ],
+      [ "blacksmithing_standard", 4 ],
       [ "lc_steel_standard", 1 ],
       [ "armor_chainmail_assembling", 1 ],
       [ "carbon", 2 ]
@@ -1626,7 +1695,7 @@
     "time": "1 d 19 h",
     "using": [
       [ "fabric_leather_fur_hide", 3 ],
-      [ "blacksmithing_standard", 22 ],
+      [ "blacksmithing_standard", 8 ],
       [ "lc_steel_standard", 2 ],
       [ "armor_chainmail_assembling", 2 ],
       [ "carbon", 3 ]
@@ -1646,12 +1715,12 @@
     "book_learn": [ [ "textbook_armwest", 7 ] ],
     "using": [
       [ "fabric_leather_fur_hide", 2 ],
-      [ "blacksmithing_standard", 16 ],
+      [ "blacksmithing_standard", 4 ],
       [ "mc_steel_standard", 1 ],
       [ "armor_chainmail_assembling", 1 ]
     ],
     "qualities": [ { "id": "CHISEL", "level": 3 } ],
-    "tools": [ [ [ "tongs", -1 ] ], [ [ "hotcut", -1 ] ], [ [ "metal_tank", -1 ] ], [ [ "water", -120 ], [ "water_clean", -120 ] ] ],
+    "tools": [ [ [ "hotcut", -1 ] ], [ [ "metal_tank", -1 ] ], [ [ "water", -120 ], [ "water_clean", -120 ] ] ],
     "proficiencies": [
       { "proficiency": "prof_armorsmithing" },
       { "proficiency": "prof_closures", "time_multiplier": 1.25, "skill_penalty": 0.15 },
@@ -1668,11 +1737,11 @@
     "time": "1 d 23 h",
     "using": [
       [ "fabric_leather_fur_hide", 3 ],
-      [ "blacksmithing_standard", 22 ],
+      [ "blacksmithing_standard", 8 ],
       [ "mc_steel_standard", 2 ],
       [ "armor_chainmail_assembling", 2 ]
     ],
     "qualities": [ { "id": "CHISEL", "level": 3 } ],
-    "tools": [ [ [ "tongs", -1 ] ], [ [ "hotcut", -1 ] ], [ [ "metal_tank", -1 ] ], [ [ "water", -120 ], [ "water_clean", -120 ] ] ]
+    "tools": [ [ [ "hotcut", -1 ] ], [ [ "metal_tank", -1 ] ], [ [ "water", -120 ], [ "water_clean", -120 ] ] ]
   }
 ]

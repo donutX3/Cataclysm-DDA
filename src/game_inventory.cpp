@@ -1087,7 +1087,7 @@ class activatable_inventory_preset : public pickup_inventory_preset
             }
 
             if( uses.size() == 1 ) {
-                const auto ret = uses.begin()->second.can_call( you, it, false, you.pos() );
+                const auto ret = uses.begin()->second.can_call( you, it, you.pos() );
                 if( !ret.success() ) {
                     return trim_trailing_punctuations( ret.str() );
                 }
@@ -1670,6 +1670,11 @@ static bool valid_unload_container( const item_location &container )
         return false;
     }
 
+    // Item must be able to be unloaded
+    if( container->has_flag( flag_NO_UNLOAD ) ) {
+        return false;
+    }
+
     // Container must contain at least one item
     if( container->empty_container() ) {
         return false;
@@ -2086,7 +2091,7 @@ drop_locations game_menus::inv::smoke_food( Character &you, units::volume total_
     ( const std::vector<std::pair<item_location, int>> &locs ) {
         units::volume added_volume = 0_ml;
         for( std::pair<item_location, int> loc : locs ) {
-            added_volume += loc.first->volume() * loc.second / loc.first->charges;
+            added_volume += loc.first->volume() * loc.second / loc.first->count();
         }
         std::string volume_caption = string_format( _( "Volume (%s):" ), volume_units_abbr() );
         return inventory_selector::stats{
@@ -2539,4 +2544,39 @@ item_location game_menus::inv::install_bionic( Character &you, Character &patien
         return autodoc_internal( you, patient, bionic_install_preset( you, patient ), 5 );
     }
 
+}
+
+class change_sprite_inventory_preset: public inventory_selector_preset
+{
+    public:
+        explicit change_sprite_inventory_preset( Character &pl ) :
+            you( pl ) {
+            append_cell( []( const item_location & loc ) -> std::string {
+                if( loc->has_var( "sprite_override" ) ) {
+                    const itype_id sprite_override( std::string( loc->get_var( "sprite_override" ) ) );
+                    const std::string variant = loc->get_var( "sprite_override_variant" );
+                    if( !item::type_is_defined( sprite_override ) ) {
+                        return _( "Unknown" );
+                    }
+                    item tmp( sprite_override );
+                    tmp.set_itype_variant( variant );
+                    return tmp.tname();
+                }
+                return _( "Default" );
+            }, _( "Shown as" ) );
+        }
+
+        bool is_shown( const item_location &loc ) const override {
+            return loc->is_armor();
+        }
+
+    protected:
+        Character &you;
+};
+
+item_location game_menus::inv::change_sprite( Character &you )
+{
+    return inv_internal( you, change_sprite_inventory_preset( you ),
+                         _( "Change appearance of your armor:" ), -1,
+                         _( "You have nothing to wear." ) );
 }

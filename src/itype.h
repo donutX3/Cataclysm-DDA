@@ -108,6 +108,8 @@ struct islot_tool {
     int turns_per_charge = 0;
     units::power power_draw = 0_W;
 
+    float fuel_efficiency = -1.0f;
+
     std::vector<int> rand_charges;
 };
 
@@ -122,7 +124,7 @@ struct islot_comestible {
         itype_id tool = itype_id::NULL_ID();
 
         /** Defaults # of charges (drugs, loaf of bread? etc) */
-        int def_charges = 1;
+        int def_charges = 0;
 
         /** effect on character thirst (may be negative) */
         int quench = 0;
@@ -1137,6 +1139,9 @@ struct itype {
         /** Action to take when countdown expires */
         use_function countdown_action;
 
+        /** Actions to take when item is processed */
+        std::map<std::string, use_function> tick_action;
+
         /**
         * @name Non-negative properties
         * After loading from JSON these properties guaranteed to be zero or positive
@@ -1382,7 +1387,7 @@ struct itype {
         }
         /** Number of degradation increments before the item is destroyed */
         int degrade_increments() const {
-            return count_by_charges() ? 0 : degrade_increments_;
+            return degrade_increments_;
         }
 
         /**
@@ -1408,7 +1413,7 @@ struct itype {
         }
 
         bool count_by_charges() const {
-            return stackable_ || ammo || comestible;
+            return stackable_ || ammo || ( comestible && phase != phase_id::SOLID );
         }
 
         int charges_default() const;
@@ -1445,11 +1450,11 @@ struct itype {
         const use_function *get_use( const std::string &iuse_name ) const;
 
         // Here "invoke" means "actively use". "Tick" means "active item working"
-        std::optional<int> invoke( Character &p, item &it,
+        std::optional<int> invoke( Character *p, item &it,
                                    const tripoint &pos ) const; // Picks first method or returns 0
-        std::optional<int> invoke( Character &p, item &it, const tripoint &pos,
+        std::optional<int> invoke( Character *p, item &it, const tripoint &pos,
                                    const std::string &iuse_name ) const;
-        int tick( Character &p, item &it, const tripoint &pos ) const;
+        int tick( Character *p, item &it, const tripoint &pos ) const;
 
         virtual ~itype() = default;
 
@@ -1458,7 +1463,6 @@ struct itype {
 };
 
 void load_charge_removal_blacklist( const JsonObject &jo, std::string_view src );
-void load_charge_migration_blacklist( const JsonObject &jo, std::string_view src );
 void load_temperature_removal_blacklist( const JsonObject &jo, std::string_view src );
 
 #endif // CATA_SRC_ITYPE_H

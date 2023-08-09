@@ -314,6 +314,21 @@ struct aim_type {
     }
 };
 
+struct parallax_cache {
+    int parallax_with_zoom;
+    int parallax_without_zoom;
+};
+
+struct aim_mods_cache {
+    float aim_speed_skill_mod;
+    float aim_speed_dex_mod;
+    float aim_speed_mod;
+    int limit;
+    double aim_factor_from_volume;
+    double aim_factor_from_length;
+    std::optional<std::reference_wrapper<parallax_cache>> parallaxes;
+};
+
 struct special_attack {
     std::string text;
     damage_instance damage;
@@ -370,6 +385,24 @@ enum class book_mastery {
     CANT_UNDERSTAND, // does not have enough skill to read
     LEARNING,
     MASTERED // can no longer increase skill by reading
+};
+
+enum class read_condition_result {
+    SUCCESS = 0,
+    NOT_BOOK = 1 << 0,
+    CANT_UNDERSTAND = 1 << 1,
+    MASTERED = 1 << 2,
+    DRIVING = 1 << 3,
+    ILLITERATE = 1 << 4,
+    NEED_GLASSES = 1 << 5,
+    TOO_DARK = 1 << 6,
+    MORALE_LOW = 1 << 7,
+    BLIND = 1 << 8
+};
+
+template<>
+struct enum_traits<read_condition_result> {
+    static constexpr bool is_flag_enum = true;
 };
 
 /** @relates ret_val */
@@ -672,10 +705,12 @@ class Character : public Creature, public visitable
         std::vector<aim_type> get_aim_types( const item &gun ) const;
         int point_shooting_limit( const item &gun ) const;
         double fastest_aiming_method_speed( const item &gun, double recoil,
-                                            Target_attributes target_attributes = Target_attributes() ) const;
+                                            Target_attributes target_attributes = Target_attributes(),
+                                            std::optional<std::reference_wrapper<parallax_cache>> parallax_cache = std::nullopt ) const;
         int most_accurate_aiming_method_limit( const item &gun ) const;
         double aim_factor_from_volume( const item &gun ) const;
         double aim_factor_from_length( const item &gun ) const;
+        aim_mods_cache gen_aim_mods_cache( const item &gun )const;
 
         // Get the value of the specified character modifier.
         // (some modifiers require a skill_id, ex: aim_speed_skill_mod)
@@ -689,15 +724,18 @@ class Character : public Creature, public visitable
         bool has_gun_for_ammo( const ammotype &at ) const;
         bool has_magazine_for_ammo( const ammotype &at ) const;
 
-        /* Calculate aim improvement per move spent aiming at a given @ref recoil */
+        /* Calculate aim improvement per move spent aiming at a given @ref recoil
+        * Use a struct to avoid repeatedly calculate some modifiers that are actually persistent for aiming UI drawing.
+        */
         double aim_per_move( const item &gun, double recoil,
-                             Target_attributes target_attributes = Target_attributes() ) const;
+                             Target_attributes target_attributes = Target_attributes(),
+                             std::optional<std::reference_wrapper<const aim_mods_cache>> aim_cache = std::nullopt ) const;
 
         int get_dodges_left() const;
         void set_dodges_left( int dodges );
         void mod_dodges_left( int mod );
         void consume_dodge_attempts();
-        ret_val<void> can_try_doge() const;
+        ret_val<void> can_try_doge( bool ignore_dodges_left = false ) const;
 
         float get_stamina_dodge_modifier() const;
 
@@ -810,7 +848,7 @@ class Character : public Creature, public visitable
         /** Kills the player if too hungry, stimmed up etc., forces tired player to sleep and prints warnings. */
         void check_needs_extremes();
         /** Handles the chance to be infected by random diseases */
-        void get_sick();
+        void get_sick( bool is_flu = false );
         /** Returns if the player has hibernation mutation and is asleep and well fed */
         bool is_hibernating() const;
         /** Maintains body temperature */
@@ -889,7 +927,7 @@ class Character : public Creature, public visitable
         void wait_effects( bool attacking = false );
 
         /** Series of checks to remove effects for waiting or moving */
-        bool try_remove_grab();
+        bool try_remove_grab( bool attacking = false );
         void try_remove_downed();
         void try_remove_bear_trap();
         void try_remove_lightsnare();
@@ -907,6 +945,7 @@ class Character : public Creature, public visitable
         bool is_running() const;
         bool is_walking() const;
         bool is_crouching() const;
+        bool is_runallfours() const;
         bool is_prone() const;
 
         int footstep_sound() const;
@@ -980,10 +1019,11 @@ class Character : public Creature, public visitable
         bool handle_melee_wear( item_location shield, float wear_multiplier = 1.0f );
         /** Returns a random valid technique */
         matec_id pick_technique( Creature &t, const item_location &weap,
-                                 bool crit, bool dodge_counter, bool block_counter );
+                                 bool crit, bool dodge_counter, bool block_counter, const std::vector<matec_id> &blacklist = {} );
         // Houses the actual picking logic and returns the vector of eligable techniques
         std::vector<matec_id> evaluate_techniques( Creature &t, const item_location &weap,
-                bool crit = false, bool dodge_counter = false, bool block_counter = false );
+                bool crit = false, bool dodge_counter = false, bool block_counter = false,
+                const std::vector<matec_id> &blacklist = {} );
         void perform_technique( const ma_technique &technique, Creature &t, damage_instance &di,
                                 int &move_cost, item_location &cur_weapon );
 
@@ -998,12 +1038,12 @@ class Character : public Creature, public visitable
          * @param allow_unarmed always uses the wielded weapon regardless of martialarts style
          */
         bool melee_attack( Creature &t, bool allow_special, const matec_id &force_technique,
-                           bool allow_unarmed = true );
+                           bool allow_unarmed = true, int forced_movecost = -1 );
         bool melee_attack_abstract( Creature &t, bool allow_special, const matec_id &force_technique,
-                                    bool allow_unarmed = true );
+                                    bool allow_unarmed = true, int forced_movecost = -1 );
 
         /** Handles reach melee attacks */
-        void reach_attack( const tripoint &p );
+        void reach_attack( const tripoint &p, int forced_movecost = -1 );
 
         /**
          * Calls the to other melee_attack function with an empty technique id (meaning no specific
@@ -1428,6 +1468,9 @@ class Character : public Creature, public visitable
                           bool allow_neutral ) const;
         /** Roll, based on instability, whether next mutation should be good or bad */
         bool roll_bad_mutation() const;
+        /** Opens a menu which allows players to choose from a list of mutations */
+        bool mutation_selector( const std::vector<trait_id> &prospective_traits,
+                                const mutation_category_id &cat, const bool &use_vitamins );
         /** Picks a random valid mutation in a category and mutate_towards() it */
         void mutate_category( const mutation_category_id &mut_cat, bool use_vitamins,
                               bool true_random = false );
@@ -1869,8 +1912,15 @@ class Character : public Creature, public visitable
         item_location i_add( item it, bool should_stack = true, const item *avoid = nullptr,
                              const item *original_inventory_item = nullptr, bool allow_drop = true,
                              bool allow_wield = true, bool ignore_pkt_settings = false );
+        item_location i_add( item it, int &copies_remaining, bool should_stack = true,
+                             const item *avoid = nullptr,
+                             const item *original_inventory_item = nullptr, bool allow_drop = true,
+                             bool allow_wield = true, bool ignore_pkt_settings = false );
         /** tries to add to the character's inventory without a popup. returns nullptr if it fails. */
         item_location try_add( item it, const item *avoid = nullptr,
+                               const item *original_inventory_item = nullptr, bool allow_wield = true,
+                               bool ignore_pkt_settings = false );
+        item_location try_add( item it, int &copies_remaining, const item *avoid = nullptr,
                                const item *original_inventory_item = nullptr, bool allow_wield = true,
                                bool ignore_pkt_settings = false );
 
@@ -2302,6 +2352,13 @@ class Character : public Creature, public visitable
         time_duration time_to_read( const item &book, const Character &reader,
                                     const Character *learner = nullptr ) const;
 
+        /**
+         * Helper function for get_book_reader
+         *
+         * @param book The book being read
+         */
+        read_condition_result check_read_condition( const item &book ) const;
+
         /** Calls Creature::normalize()
          *  nulls out the player's weapon
          *  Should only be called through player::normalize(), not on it's own!
@@ -2322,6 +2379,8 @@ class Character : public Creature, public visitable
         }
         virtual bool query_yn( const std::string &msg ) const = 0;
 
+        // checks if your character is immune to an effect or field based on field_immunity_data
+        bool check_immunity_data( const field_immunity_data &ft ) const override;
         bool is_immune_field( const field_type_id &fid ) const override;
         /** Returns true is the player is protected from electric shocks */
         bool is_elec_immune() const override;
@@ -2638,6 +2697,7 @@ class Character : public Creature, public visitable
                                    const player_activity &act_back = player_activity() );
         bool has_stashed_activity() const;
         bool can_stash( const item &it, bool ignore_pkt_settings = false );
+        bool can_stash( const item &it, int &copies_remaining, bool ignore_pkt_settings = false );
         bool can_stash_partial( const item &it, bool ignore_pkt_settings = false );
         void initialize_stomach_contents();
 
@@ -2900,6 +2960,8 @@ class Character : public Creature, public visitable
          * with ranged weapons, e.g. with infrared vision.
          */
         std::vector<Creature *> get_targetable_creatures( int range, bool melee ) const;
+        /** Returns the mutation visibility threshold for the observer ( *this ) */
+        int get_mutation_visibility_cap( const Character *observed ) const;
         /** Returns an enumeration of visible mutations with colors */
         std::string visible_mutations( int visibility_cap ) const;
 
@@ -3024,10 +3086,13 @@ class Character : public Creature, public visitable
          * depending on choice of ingredients */
         std::pair<nutrients, nutrients> compute_nutrient_range(
             const item &, const recipe_id &,
+            std::map<recipe_id, std::pair<nutrients, nutrients>> &rec_cache,
             const cata::flat_set<flag_id> &extra_flags = {} ) const;
         /** Same, but across arbitrary recipes */
         std::pair<nutrients, nutrients> compute_nutrient_range(
-            const itype_id &, const cata::flat_set<flag_id> &extra_flags = {} ) const;
+            const itype_id &,
+            std::map<recipe_id, std::pair<nutrients, nutrients>> &rec_cache,
+            const cata::flat_set<flag_id> &extra_flags = {} ) const;
         /** Returns allergy type or MORALE_NULL if not allergic for this character */
         morale_type allergy_type( const item &food ) const;
         nutrients compute_effective_nutrients( const item & ) const;
@@ -3099,7 +3164,7 @@ class Character : public Creature, public visitable
          * above 4.0 means these activities cannot be performed.
          * takes pos as a parameter so that remote spots can be judged
          * if they will potentially have enough light when player gets there */
-        float fine_detail_vision_mod( const tripoint &p = tripoint_zero ) const;
+        float fine_detail_vision_mod( const tripoint &p = tripoint_min ) const;
 
         // ---- CRAFTING ----
         void make_craft_with_command( const recipe_id &id_to_make, int batch_size, bool is_long,
@@ -3148,7 +3213,7 @@ class Character : public Creature, public visitable
 
         // crafting.cpp
         float morale_crafting_speed_multiplier( const recipe &rec ) const;
-        float lighting_craft_speed_multiplier( const recipe &rec ) const;
+        float lighting_craft_speed_multiplier( const recipe &rec, const tripoint &p = tripoint_min ) const;
         float crafting_speed_multiplier( const recipe &rec ) const;
         float workbench_crafting_speed_multiplier( const item &craft,
                 const std::optional<tripoint> &loc )const;
@@ -3318,6 +3383,8 @@ class Character : public Creature, public visitable
         float leak_level = 0.0f;
         /** Signify that leak_level needs refreshing. Set to true on inventory change. */
         bool leak_level_dirty = true;
+        // Cache if current bionic layout has certain json flag. Refreshed upon bionics add/remove, activation/deactivation.
+        mutable std::map<const json_character_flag, bool> bio_flag_cache;
     public:
         float get_leak_level() const;
         /** Iterate through the character inventory to get its leak level */
@@ -3447,9 +3514,7 @@ class Character : public Creature, public visitable
         Character();
         Character( Character && ) noexcept( map_is_noexcept );
         Character &operator=( Character && ) noexcept( list_is_noexcept );
-        // Swaps the data of this Character and "other" using "tmp" for temporary storage.
-        // Leaves "tmp" in an undefined state.
-        void swap_character( Character &other, Character &tmp );
+        void swap_character( Character &other );
     public:
         struct trait_data {
             /** Whether the mutation is activated. */
@@ -3518,8 +3583,6 @@ class Character : public Creature, public visitable
 
         // Our weariness level last turn, so we know when we transition
         int old_weary_level = 0;
-        // Z-level on the last turn (used for edge-case "fine_detail_vision_mod" NPCs function override)
-        int last_pc_zlev = 0;
 
         trap_map known_traps;
         mutable std::map<std::string, double> cached_info;

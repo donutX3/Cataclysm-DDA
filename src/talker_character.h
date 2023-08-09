@@ -44,6 +44,7 @@ class talker_character_const: public talker_cloner<talker_character_const>
         tripoint_abs_ms global_pos() const override;
         tripoint_abs_omt global_omt_location() const override;
         int get_cur_hp( const bodypart_id &bp ) const override;
+        int get_hp_max( const bodypart_id &bp ) const override;
         int get_cur_part_temp( const bodypart_id &bp ) const override;
 
         // stats, skills, traits, bionics, and magic
@@ -246,8 +247,15 @@ class talker_character: public talker_cloner<talker_character, talker_character_
         std::vector<bodypart_id> get_all_body_parts( bool all, bool main_only ) const override;
         int get_part_hp_cur( const bodypart_id &id ) const override;
         int get_part_hp_max( const bodypart_id &id ) const override;
+        void set_all_parts_hp_cur( int ) const override;
         void set_part_hp_cur( const bodypart_id &id, int set ) const override;
+        bool get_is_alive() const override;
         void die() override;
+        void attack_target( Creature &t, bool allow_special, const matec_id &force_technique,
+                            bool allow_unarmed, int forced_movecost ) override;
+        matec_id get_random_technique( Creature &t, bool crit, bool dodge_counter, bool block_counter,
+                                       const std::vector<matec_id> &blacklist = {} )
+        const override;
         void learn_martial_art( const matype_id &id ) const override;
         void forget_martial_art( const matype_id &id ) const override;
     protected:

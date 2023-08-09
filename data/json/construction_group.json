@@ -66,6 +66,11 @@
   },
   {
     "type": "construction_group",
+    "id": "build_down_bed",
+    "name": "Build Down Bed/Bunk bed"
+  },
+  {
+    "type": "construction_group",
     "id": "build_bookcase",
     "name": "Build Bookcase"
   },
@@ -298,6 +303,11 @@
     "type": "construction_group",
     "id": "build_fermenting_vat",
     "name": "Build Fermenting Vat"
+  },
+  {
+    "type": "construction_group",
+    "id": "build_wooden_fermenting_vat",
+    "name": "Build Wooden Fermenting Vat"
   },
   {
     "type": "construction_group",
@@ -1046,6 +1056,11 @@
   },
   {
     "type": "construction_group",
+    "id": "jackhammer_resin_cage",
+    "name": "Jackhammer Resin Cage"
+  },
+  {
+    "type": "construction_group",
     "id": "lay_down_decorative_ground_cable",
     "name": "Lay down decorative ground cable"
   },
@@ -1053,6 +1068,11 @@
     "type": "construction_group",
     "id": "make_crafting_spot",
     "name": "Make crafting spot"
+  },
+  {
+    "type": "construction_group",
+    "id": "make_stooking_spot",
+    "name": "Make stooking spot"
   },
   {
     "type": "construction_group",
@@ -1083,6 +1103,11 @@
     "type": "construction_group",
     "id": "mine_downstair",
     "name": "Mine Downstair"
+  },
+  {
+    "type": "construction_group",
+    "id": "mine_resin_cage",
+    "name": "Mine Resin Cage"
   },
   {
     "type": "construction_group",
@@ -1261,6 +1286,11 @@
   },
   {
     "type": "construction_group",
+    "id": "place_catalytic_cracking_reactor",
+    "name": "Place Catalytic Cracking Reactor"
+  },
+  {
+    "type": "construction_group",
     "id": "place_hydraulic_press",
     "name": "Place Hydraulic Press"
   },
@@ -1278,6 +1308,11 @@
     "type": "construction_group",
     "id": "place_heater_small",
     "name": "Place Small Heater"
+  },
+  {
+    "type": "construction_group",
+    "id": "place_wall_light",
+    "name": "Place Wall Light"
   },
   {
     "type": "construction_group",
@@ -1698,6 +1733,11 @@
     "type": "construction_group",
     "id": "place_asrg_containment",
     "name": "Place ASRG"
+  },
+  {
+    "type": "construction_group",
+    "id": "place_active_backup_generator",
+    "name": "Place backup generator"
   },
   {
     "type": "construction_group",
