@@ -26,11 +26,11 @@ include(${CMAKE_SOURCE_DIR}/build-scripts/VsDevCmd.cmake)
 # It's fine to keep @_MSVC_DEVENV@ undefined
 set(BUILD_PRESET_NAME "windows-tiles-sounds-x64-msvc")
 set(CONFIGURE_PRESET "windows-tiles-sounds-x64-msvc")
-configure_file(
-    ${CMAKE_SOURCE_DIR}/build-scripts/CMakeUserPresets.json.in
-    ${CMAKE_SOURCE_DIR}/CMakeUserPresets.json
-    @ONLY
-)
+#configure_file(
+#    ${CMAKE_SOURCE_DIR}/build-scripts/CMakeUserPresets.json.in
+#    ${CMAKE_SOURCE_DIR}/CMakeUserPresets.json
+#    @ONLY
+#)
 
 # Ninja is provided by Microsoft but not in the Path
 if (CMAKE_GENERATOR MATCHES "^Ninja")

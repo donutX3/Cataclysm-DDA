@@ -29,7 +29,6 @@ option(LANGUAGES "Compile localization files for specified languages." "")
 option(DYNAMIC_LINKING
         "Use dynamic linking. Or use static to remove MinGW dependency instead." "ON")
 option(JSON_FORMAT "Build JSON formatter" "OFF")
-option(WARNINGS_AS_ERRORS "Treats warning as errors." "ON")
 option(CATA_CCACHE "Try to find and build with ccache" "ON")
 option(CATA_CLANG_TIDY_PLUGIN "Build Cata's custom clang-tidy checks as a plugin" "OFF")
 option(CATA_CLANG_TIDY_EXECUTABLE "Build Cata's custom clang-tidy checks as an executable" "OFF")
@@ -52,48 +51,6 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 add_definitions(-DCMAKE)
-
-if (MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8") # Properly compile utf stuff
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj") # Enable big obj sections
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4068") # Ignore warnings about GCC pragmas
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP") # Allow compiling multiple files at once
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive-") # Be more standard conforming
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /sdl-") # Disable some security features and warnings
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GS-") # Don't check buffer security
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Gy") # Enables function level linking
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GF") # Enables string pooling
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /WX-") # Don't treat warnings as errors
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W1") # Default warning level
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /TP") # Specifies that all source files are C++
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:forScope") # Enforce Standard C++ for scoping rules (on by default).
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:inline") # Remove unreferenced functions or data if they're COMDAT or have internal linkage only (off by default).
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:wchar_t") # wchar_t is a native type, not a typedef (on by default).
-
-    if ("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Oi") # Enabled intrinsic functions in
-    endif()
-
-    add_compile_definitions(
-        _SCL_SECURE_NO_WARNINGS
-        _CRT_SECURE_NO_WARNINGS
-        WIN32_LEAN_AND_MEAN
-        LOCALIZE
-        USE_VCPKG
-    )
-
-    add_link_options(
-        /OPT:REF
-        /OPT:ICF
-        /LTCG:OFF
-        /MANIFEST:NO
-        /INCREMENTAL:NO
-        /DYNAMICBASE
-        /NXCOMPAT
-    )
-
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded")
-endif()
 
 include(GetGitRevisionDescription)
 git_describe(GIT_VERSION --tags --always --match "[0-9A-Z]*.[0-9A-Z]*")
@@ -254,7 +211,7 @@ message(STATUS "See doc/COMPILING/COMPILING-CMAKE.md for details and more info -
 
 if (NOT MSVC)
     set(CATA_WARNINGS
-            "-Wall -Wextra \
+            "-Werror -Wall -Wextra \
              -Wformat-signedness \
              -Wlogical-op \
              -Wmissing-declarations \
@@ -266,11 +223,6 @@ if (NOT MSVC)
              -Wsuggest-override \
              -Wunused-macros \
              -Wzero-as-null-pointer-constant")
-
-    if (WARNINGS_AS_ERRORS)
-        set(CATA_WARNINGS "${CATA_WARNINGS} -Werror")
-    endif()
-
     if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
         set(CATA_WARNINGS "${CATA_WARNINGS} -Wno-unknown-warning-option")
     else()
