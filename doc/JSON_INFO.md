@@ -1781,6 +1781,18 @@ Example:
 
 This gives the player pants, two rocks, a t-shirt with the snippet id "allyourbase" (giving it a special description), socks and (depending on the gender) briefs or panties.
 
+#### `age_lower`
+
+(optional, int)
+The lowest age that a character with this profession can generate with. 
+This places no limits on manual input, only on random generation (i.e. Play Now!). Defaults to 21.
+
+#### `age_upper`
+
+(optional, int)
+The highest age that a character with this profession can generate with.
+This places no limits on manual input, only on random generation (i.e. Play Now!). Defaults to 55.
+
 #### `pets`
 
 (optional, array of string mtype_ids )
@@ -1879,7 +1891,7 @@ Crafting recipes are defined as a JSON object with the following fields:
 "contained": true, // Boolean value which defines if the resulting item comes in its designated container. Automatically set to true if any container is defined in the recipe. 
 "container": "jar_glass_sealed", //The resulting item will be contained by the item set here, overrides default container.
 "batch_time_factors": [25, 15], // Optional factors for batch crafting time reduction. First number specifies maximum crafting time reduction as percentage, and the second number the minimal batch size to reach that number. In this example given batch size of 20 the last 6 crafts will take only 3750 time units.
-"count": 2,                  // Number of resulting items/charges per craft. Uses default charges if not set. If a container is set, this is the amount that gets put inside it, capped by container capacity.
+"charges": 2,                // Number of resulting items/charges per craft. Uses default charges if not set. If a container is set, this is the amount that gets put inside it, capped by container capacity.
 "result_mult": 2,            // Multiplier for resulting items. Also multiplies container items.
 "flags": [                   // A set of strings describing boolean features of the recipe
   "BLIND_EASY",
@@ -5394,6 +5406,10 @@ If it is an object - it has following attributes:
 * `TYPE` - The provided string must completely match the base type id of the
   overmap terrain id, which means that suffixes for rotation and linear terrain
   types are ignored.
+ 
+* `SUBTYPE` - The provided string must completely match the base type id of the
+  overmap terrain id as well as the linear terrain type ie "road_curved" will match
+  "road_ne", "road_es", "road_sw" and "road_wn".
 
 * `PREFIX` - The provided string must be a complete prefix (with additional
   parts delimited by an underscore) of the overmap terrain id. For example,

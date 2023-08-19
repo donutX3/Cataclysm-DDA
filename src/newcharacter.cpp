@@ -50,6 +50,7 @@
 #include "pimpl.h"
 #include "player_difficulty.h"
 #include "profession.h"
+#include "profession_group.h"
 #include "proficiency.h"
 #include "recipe.h"
 #include "recipe_dictionary.h"
@@ -80,6 +81,9 @@ static const flag_id json_flag_auto_wield( "auto_wield" );
 static const flag_id json_flag_no_auto_equip( "no_auto_equip" );
 
 static const json_character_flag json_flag_BIONIC_TOGGLED( "BIONIC_TOGGLED" );
+
+static const profession_group_id
+profession_group_adult_basic_background( "adult_basic_background" );
 
 static const trait_id trait_SMELLY( "SMELLY" );
 static const trait_id trait_WEAKSCENT( "WEAKSCENT" );
@@ -420,8 +424,6 @@ void avatar::randomize( const bool random_scenario, bool play_now )
     } else {
         name = MAP_SHARING::getUsername();
     }
-    // if adjusting min and max age from 16 and 55, make sure to see set_description()
-    init_age = rng( 16, 55 );
     randomize_height();
     randomize_blood();
     randomize_heartrate();
@@ -443,6 +445,7 @@ void avatar::randomize( const bool random_scenario, bool play_now )
     }
 
     prof = get_scenario()->weighted_random_profession();
+    init_age = rng( this->prof->age_lower, this->prof->age_upper );
     randomize_hobbies();
     starting_city = std::nullopt;
     world_origin = std::nullopt;
@@ -713,6 +716,8 @@ bool avatar::create( character_type type, const std::string &tempname )
             break;
     }
 
+    add_default_background();
+
     auto nameExists = [&]( const std::string & name ) {
         return world_generator->active_world->save_exists( save_t::from_save_id( name ) ) &&
                !query_yn( _( "A save with the name '%s' already exists in this world.\n"
@@ -778,7 +783,7 @@ bool avatar::create( character_type type, const std::string &tempname )
     return true;
 }
 
-void Character::initialize()
+void Character::initialize( bool learn_recipes )
 {
     recalc_hp();
 
@@ -824,12 +829,13 @@ void Character::initialize()
         set_stored_kcal( std::floor( get_stored_kcal() * 5 ) );
     }
 
-    // Learn recipes
-    for( const auto &e : recipe_dict ) {
-        const recipe &r = e.second;
-        if( !r.is_practice() && !r.has_flag( flag_SECRET ) && !knows_recipe( &r ) &&
-            has_recipe_requirements( r ) ) {
-            learn_recipe( &r );
+    if( learn_recipes ) {
+        for( const auto &e : recipe_dict ) {
+            const recipe &r = e.second;
+            if( !r.is_practice() && !r.has_flag( flag_SECRET ) && !knows_recipe( &r ) &&
+                has_recipe_requirements( r ) ) {
+                learn_recipe( &r );
+            }
         }
     }
 
@@ -4512,6 +4518,17 @@ std::optional<std::string> query_for_template_name()
 void avatar::character_to_template( const std::string &name )
 {
     save_template( name, pool_type::TRANSFER );
+}
+
+void avatar::add_default_background()
+{
+    for( const profession_group &prof_grp : profession_group::get_all() ) {
+        if( prof_grp.get_id() == profession_group_adult_basic_background ) {
+            for( const profession_id &hobb : prof_grp.get_professions() ) {
+                hobbies.insert( &hobb.obj() );
+            }
+        }
+    }
 }
 
 void avatar::save_template( const std::string &name, pool_type pool )
