@@ -51,6 +51,22 @@
         "VCPKG_TARGET_TRIPLET": "x64-linux",
         "VCPKG_MANIFEST_DIR": "${sourceDir}/msvc-full-features/"
       }
+    },
+    {
+      "name": "cataclysmdda-windows-x64-msvc-ninja",
+      "inherits": [
+        "windows-tiles-sounds-x64-msvc"
+      ],
+      "generator": "Ninja",
+      "environment": {
+        "VCPKG_ROOT": "G:/Software/vcpkg"
+      },
+      "cacheVariables": {
+        "CMAKE_PROJECT_INCLUDE_BEFORE": "${sourceDir}/build-scripts/windows-tiles-sounds-x64-msvc.cmake",
+        "VCPKG_MANIFEST_DIR": "${sourceDir}/msvc-full-features",
+        "VCPKG_MANIFEST_MODE": "True",
+        "LOCALIZE": "False"
+      }
     }
   ],
   "buildPresets": [
